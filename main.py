@@ -1,19 +1,25 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, constr, field_validator #Added constr and validator to prevent attacks
 from bson import ObjectId
 import motor.motor_asyncio
 
 app = FastAPI()
 
 # Connect to Mongo Atlas
-client = motor.motor_asyncio.AsyncIOMotorClient("your_mongo_connection_string")
+client = motor.motor_asyncio.AsyncIOMotorClient("mongodb+srv://admin:<942Hi2YQhhckNgaQ>@mcast-de-cluster.jxlca.mongodb.net/")
 db = client.multimedia_db
 
 
 class PlayerScore(BaseModel):
-    player_name: str
+    # Validates the player name and score input
+    player_name: constr(strip_whitespace=True, min_length=1, max_length=100)
     score: int
 
+    @field_validator("score")
+    def validate_score(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError(f"Score must be non-negative, got {value}.")
+        return value
 
 @app.post("/upload_sprite")
 async def upload_sprite(file: UploadFile = File(...)):
